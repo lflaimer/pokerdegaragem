@@ -91,7 +91,14 @@ export const dashboardFiltersSchema = z.object({
   groupId: z.string().optional(),
 });
 
+// Admin schemas
+export const adminLoginSchema = z.object({
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required'),
+});
+
 // Types
+export type AdminLoginInput = z.infer<typeof adminLoginSchema>;
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
 export type CreateGroupInput = z.infer<typeof createGroupSchema>;
