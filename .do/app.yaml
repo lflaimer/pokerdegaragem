@@ -1,0 +1,28 @@
+name: pokerdegaragem
+region: nyc
+services:
+  - name: web
+    github:
+      repo: lflaimer/pokerdegaragem
+      branch: main
+      deploy_on_push: true
+    build_command: npm install && npx prisma generate && npm run build
+    run_command: npx prisma db push --skip-generate && npm start
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    http_port: 3000
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_AND_BUILD_TIME
+        value: "${DATABASE_URL}"
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: "${JWT_SECRET}"
+      - key: NEXT_PUBLIC_APP_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${APP_URL}
+      - key: NODE_ENV
+        scope: RUN_AND_BUILD_TIME
+        value: production
