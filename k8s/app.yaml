@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: poker-app
+  namespace: poker-app
+  labels:
+    app: poker-app
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+  selector:
+    app: poker-app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: poker-app
+  namespace: poker-app
+  labels:
+    app: poker-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: poker-app
+  template:
+    metadata:
+      labels:
+        app: poker-app
+    spec:
+      containers:
+        - name: poker-app
+          # Replace with your actual container registry image
+          image: poker-de-garagem:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DATABASE_URL
+              value: "mysql://poker:$(MYSQL_PASSWORD)@mysql:3306/poker_db"
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: poker-secrets
+                  key: MYSQL_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: poker-secrets
+                  key: JWT_SECRET
+            - name: NEXT_PUBLIC_APP_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: poker-config
+                  key: NEXT_PUBLIC_APP_URL
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z mysql 3306; do
+                echo "Waiting for MySQL..."
+                sleep 2
+              done
+              echo "MySQL is ready!"

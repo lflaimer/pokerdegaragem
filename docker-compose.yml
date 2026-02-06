@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=mysql://poker:poker123@db:3306/poker_db
+      - JWT_SECRET=local-dev-jwt-secret-change-in-production
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=poker_db
+      - MYSQL_USER=poker
+      - MYSQL_PASSWORD=poker123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "poker", "-ppoker123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Migration runner - runs once and exits
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: sh -c "npx prisma migrate deploy && npm run db:seed"
+    environment:
+      - DATABASE_URL=mysql://poker:poker123@db:3306/poker_db
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data:

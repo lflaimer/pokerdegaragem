@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2a8f5c"/>
+      <stop offset="100%" stop-color="#1a5f3c"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e8c36a"/>
+      <stop offset="50%" stop-color="#d4a84b"/>
+      <stop offset="100%" stop-color="#b8922e"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="url(#felt)" stroke="#3d2920" stroke-width="4"/>
+  <text x="50" y="62" font-family="Georgia, serif" font-size="36" font-weight="bold" fill="url(#gold)" text-anchor="middle">P</text>
+  <circle cx="50" cy="50" r="44" fill="none" stroke="#d4a84b" stroke-width="1" opacity="0.5"/>
+</svg>

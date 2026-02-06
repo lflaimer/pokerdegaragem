@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: poker-config
+  namespace: poker-app
+data:
+  MYSQL_DATABASE: "poker_db"
+  MYSQL_USER: "poker"
+  NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+  namespace: poker-app
+data:
+  MYSQL_DATABASE: "poker_db"
+  MYSQL_USER: "poker"

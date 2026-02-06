@@ -1,0 +1,20 @@
+# Development/Migration Dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Copy prisma schema and migrations
+COPY prisma ./prisma/
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Copy seed script dependencies
+COPY tsconfig.json ./
+
+# Default command - can be overridden
+CMD ["npx", "prisma", "migrate", "deploy"]
