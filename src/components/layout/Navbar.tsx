@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/Button';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
+import { NotificationBell } from '@/components/ui/NotificationBell';
 
 export function Navbar() {
   const { user, signOut, loading } = useAuth();
@@ -61,6 +62,7 @@ export function Navbar() {
               <div className="h-8 w-8 animate-pulse bg-poker-brown-light rounded-full" />
             ) : user ? (
               <div className="flex items-center space-x-4">
+                <NotificationBell />
                 <span className="text-sm text-poker-cream hidden sm:block">{user.name}</span>
                 <Button
                   variant="secondary"

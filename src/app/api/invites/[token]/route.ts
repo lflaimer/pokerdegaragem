@@ -110,12 +110,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return errorResponse('This invite has expired', 400);
     }
 
-    // Verify email matches (case-insensitive)
-    if (invite.inviteeEmail.toLowerCase() !== user.email.toLowerCase()) {
-      return errorResponse(
-        'This invite was sent to a different email address. Please sign in with the correct account.',
-        403
-      );
+    // For email-based invites, verify email matches (case-insensitive)
+    // For in-app invites (inviteeId set), verify user ID matches
+    if (invite.inviteeId) {
+      if (invite.inviteeId !== user.id) {
+        return errorResponse(
+          'This invite was sent to a different user.',
+          403
+        );
+      }
+    } else if (invite.inviteeEmail) {
+      if (invite.inviteeEmail.toLowerCase() !== user.email.toLowerCase()) {
+        return errorResponse(
+          'This invite was sent to a different email address. Please sign in with the correct account.',
+          403
+        );
+      }
     }
 
     // Check if already a member

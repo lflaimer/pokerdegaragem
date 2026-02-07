@@ -38,6 +38,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             name: true,
           },
         },
+        invitee: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -46,6 +52,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       invites: invites.map((i) => ({
         id: i.id,
         inviteeEmail: i.inviteeEmail,
+        inviteeId: i.inviteeId,
+        inviteeName: i.invitee?.name,
         inviter: i.inviter,
         status: i.status,
         token: i.token,
@@ -73,19 +81,29 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const body = await request.json();
     const validated = createInviteSchema.parse(body);
-    const inviteeEmail = validated.inviteeEmail.toLowerCase();
 
-    // Check if user is already a member
-    const existingUser = await prisma.user.findUnique({
-      where: { email: inviteeEmail },
-    });
+    let inviteeId: string | null = null;
+    let inviteeEmail: string | null = null;
 
-    if (existingUser) {
+    if (validated.inviteeId) {
+      // In-app invite by user ID
+      inviteeId = validated.inviteeId;
+
+      // Verify user exists
+      const inviteeUser = await prisma.user.findUnique({
+        where: { id: inviteeId },
+      });
+
+      if (!inviteeUser) {
+        return errorResponse('User not found', 404);
+      }
+
+      // Check if user is already a member
       const existingMembership = await prisma.groupMembership.findUnique({
         where: {
           groupId_userId: {
             groupId,
-            userId: existingUser.id,
+            userId: inviteeId,
           },
         },
       });
@@ -93,20 +111,57 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       if (existingMembership) {
         return errorResponse('User is already a member of this group', 400);
       }
-    }
 
-    // Check for existing pending invite
-    const existingInvite = await prisma.groupInvite.findFirst({
-      where: {
-        groupId,
-        inviteeEmail,
-        status: InviteStatus.PENDING,
-        expiresAt: { gt: new Date() },
-      },
-    });
+      // Check for existing pending invite
+      const existingInvite = await prisma.groupInvite.findFirst({
+        where: {
+          groupId,
+          inviteeId,
+          status: InviteStatus.PENDING,
+          expiresAt: { gt: new Date() },
+        },
+      });
 
-    if (existingInvite) {
-      return errorResponse('A pending invite already exists for this email', 400);
+      if (existingInvite) {
+        return errorResponse('A pending invite already exists for this user', 400);
+      }
+    } else if (validated.inviteeEmail) {
+      // Email-based invite
+      inviteeEmail = validated.inviteeEmail.toLowerCase();
+
+      // Check if user is already a member
+      const existingUser = await prisma.user.findUnique({
+        where: { email: inviteeEmail },
+      });
+
+      if (existingUser) {
+        const existingMembership = await prisma.groupMembership.findUnique({
+          where: {
+            groupId_userId: {
+              groupId,
+              userId: existingUser.id,
+            },
+          },
+        });
+
+        if (existingMembership) {
+          return errorResponse('User is already a member of this group', 400);
+        }
+      }
+
+      // Check for existing pending invite
+      const existingInvite = await prisma.groupInvite.findFirst({
+        where: {
+          groupId,
+          inviteeEmail,
+          status: InviteStatus.PENDING,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (existingInvite) {
+        return errorResponse('A pending invite already exists for this email', 400);
+      }
     }
 
     // Create invite
@@ -115,6 +170,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         groupId,
         inviterId: user.id,
         inviteeEmail,
+        inviteeId,
         token: generateInviteToken(),
         expiresAt: getInviteExpirationDate(7),
       },
@@ -126,6 +182,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             name: true,
           },
         },
+        invitee: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         group: {
           select: {
             name: true,
@@ -134,14 +196,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    // In production, send email here
-    const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/invites/${invite.token}`;
+    // For email invites, generate a link. For in-app invites, no link needed
+    const inviteLink = inviteeEmail
+      ? `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/invites/${invite.token}`
+      : null;
 
     return successResponse(
       {
         invite: {
           id: invite.id,
           inviteeEmail: invite.inviteeEmail,
+          inviteeId: invite.inviteeId,
+          inviteeName: invite.invitee?.name,
           inviter: invite.inviter,
           groupName: invite.group.name,
           token: invite.token,

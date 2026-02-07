@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Select';
+import { UserSearchInput } from '@/components/ui/UserSearchInput';
 
 interface Member {
   id: string;
@@ -24,7 +25,9 @@ interface Member {
 
 interface Invite {
   id: string;
-  inviteeEmail: string;
+  inviteeEmail: string | null;
+  inviteeId: string | null;
+  inviteeName: string | null;
   inviter: {
     id: string;
     name: string;
@@ -59,6 +62,9 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
   const [publicInviteLink, setPublicInviteLink] = useState<string | null>(null);
   const [publicLinkLoading, setPublicLinkLoading] = useState(false);
   const [publicLinkCopied, setPublicLinkCopied] = useState(false);
+
+  // Invite modal tabs
+  const [inviteTab, setInviteTab] = useState<'email' | 'username'>('email');
 
   const fetchData = async () => {
     setLoading(true);
@@ -131,6 +137,32 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
 
       setInviteLink(data.data.invite.inviteLink);
       setInviteEmail('');
+      fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send invite');
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleUserInvite = async (user: { id: string; name: string }) => {
+    setError('');
+    setInviting(true);
+
+    try {
+      const res = await fetch(`/api/groups/${groupId}/invites`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteeId: user.id }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send invite');
+      }
+
+      setShowInviteModal(false);
       fetchData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send invite');
@@ -413,24 +445,28 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                       {invites.map((invite) => (
                         <div key={invite.id} className="py-4 flex items-center justify-between">
                           <div>
-                            <p className="font-medium text-poker-brown">{invite.inviteeEmail}</p>
+                            <p className="font-medium text-poker-brown">
+                              {invite.inviteeName || invite.inviteeEmail}
+                            </p>
                             <p className="text-sm text-poker-brown/60">
                               {t.members.invitedBy} {invite.inviter.name}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => {
-                                navigator.clipboard.writeText(
-                                  `${window.location.origin}/invites/${invite.token}`
-                                );
-                                alert(t.members.linkCopied);
-                              }}
-                            >
-                              {t.members.copyLink}
-                            </Button>
+                            {invite.inviteeEmail && (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    `${window.location.origin}/invites/${invite.token}`
+                                  );
+                                  alert(t.members.linkCopied);
+                                }}
+                              >
+                                {t.members.copyLink}
+                              </Button>
+                            )}
                             <Button
                               variant="danger"
                               size="sm"
@@ -455,6 +491,7 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                 setInviteEmail('');
                 setError('');
                 setInviteLink('');
+                setInviteTab('email');
               }}
               title={t.members.inviteMember}
             >
@@ -488,40 +525,100 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleInvite} className="space-y-4">
+                <div className="space-y-4">
+                  {/* Tab buttons */}
+                  <div className="flex border-b border-poker-brown/20">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInviteTab('email');
+                        setError('');
+                      }}
+                      className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                        inviteTab === 'email'
+                          ? 'border-poker-gold text-poker-gold'
+                          : 'border-transparent text-poker-brown/60 hover:text-poker-brown'
+                      }`}
+                    >
+                      {t.userSearch.byEmail}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInviteTab('username');
+                        setError('');
+                      }}
+                      className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                        inviteTab === 'username'
+                          ? 'border-poker-gold text-poker-gold'
+                          : 'border-transparent text-poker-brown/60 hover:text-poker-brown'
+                      }`}
+                    >
+                      {t.userSearch.byUsername}
+                    </button>
+                  </div>
+
                   {error && (
                     <div className="bg-poker-red/10 border border-poker-red/30 text-poker-red px-4 py-3 rounded-lg text-sm">
                       {error}
                     </div>
                   )}
-                  <Input
-                    label={t.members.emailAddress}
-                    type="email"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder={t.members.emailPlaceholder}
-                    required
-                  />
-                  <p className="text-sm text-poker-brown/60">
-                    {t.members.inviteLinkDesc}
-                  </p>
-                  <div className="flex justify-end space-x-3">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => {
-                        setShowInviteModal(false);
-                        setInviteEmail('');
-                        setError('');
-                      }}
-                    >
-                      {t.common.cancel}
-                    </Button>
-                    <Button type="submit" loading={inviting}>
-                      {t.members.createInvite}
-                    </Button>
-                  </div>
-                </form>
+
+                  {inviteTab === 'email' ? (
+                    <form onSubmit={handleInvite} className="space-y-4">
+                      <Input
+                        label={t.members.emailAddress}
+                        type="email"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        placeholder={t.members.emailPlaceholder}
+                        required
+                      />
+                      <p className="text-sm text-poker-brown/60">
+                        {t.members.inviteLinkDesc}
+                      </p>
+                      <div className="flex justify-end space-x-3">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => {
+                            setShowInviteModal(false);
+                            setInviteEmail('');
+                            setError('');
+                          }}
+                        >
+                          {t.common.cancel}
+                        </Button>
+                        <Button type="submit" loading={inviting}>
+                          {t.members.createInvite}
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="space-y-4">
+                      <UserSearchInput
+                        groupId={groupId}
+                        onSelect={handleUserInvite}
+                        disabled={inviting}
+                      />
+                      <p className="text-sm text-poker-brown/60">
+                        {t.userSearch.searchPlaceholder}
+                      </p>
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => {
+                            setShowInviteModal(false);
+                            setError('');
+                          }}
+                        >
+                          {t.common.cancel}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </Modal>
           </>

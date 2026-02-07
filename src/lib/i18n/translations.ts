@@ -168,6 +168,34 @@ export const translations = {
       accept: 'Accept',
       inviteNoLongerValid: 'This invite is no longer valid. Please request a new invite from the group admin.',
       goHome: 'Go Home',
+      myInvites: 'My Invites',
+      pendingInvites: 'Pending Invites',
+      inviteHistory: 'Invite History',
+      noInvites: 'No pending invites',
+      noHistory: 'No invite history',
+      accepted: 'Accepted',
+      declined: 'Declined',
+      expired: 'Expired',
+      viewAll: 'View All',
+      invitedBy: 'Invited by',
+      acceptedOn: 'Accepted on',
+      declinedOn: 'Declined on',
+    },
+
+    // Notifications
+    notifications: {
+      invites: 'Invites',
+      noNewInvites: 'No new invites',
+      viewAllInvites: 'View All Invites',
+    },
+
+    // User Search
+    userSearch: {
+      byEmail: 'By Email',
+      byUsername: 'By Username',
+      searchPlaceholder: 'Search by name...',
+      noResults: 'No users found',
+      inviteSent: 'Invite sent successfully',
     },
 
     // Games
@@ -472,6 +500,34 @@ export const translations = {
       accept: 'Aceitar',
       inviteNoLongerValid: 'Este convite não é mais válido. Solicite um novo convite ao administrador do grupo.',
       goHome: 'Ir para Início',
+      myInvites: 'Meus Convites',
+      pendingInvites: 'Convites Pendentes',
+      inviteHistory: 'Histórico de Convites',
+      noInvites: 'Nenhum convite pendente',
+      noHistory: 'Nenhum histórico de convites',
+      accepted: 'Aceito',
+      declined: 'Recusado',
+      expired: 'Expirado',
+      viewAll: 'Ver Todos',
+      invitedBy: 'Convidado por',
+      acceptedOn: 'Aceito em',
+      declinedOn: 'Recusado em',
+    },
+
+    // Notifications
+    notifications: {
+      invites: 'Convites',
+      noNewInvites: 'Nenhum convite novo',
+      viewAllInvites: 'Ver Todos os Convites',
+    },
+
+    // User Search
+    userSearch: {
+      byEmail: 'Por E-mail',
+      byUsername: 'Por Nome',
+      searchPlaceholder: 'Buscar por nome...',
+      noResults: 'Nenhum usuário encontrado',
+      inviteSent: 'Convite enviado com sucesso',
     },
 
     // Games

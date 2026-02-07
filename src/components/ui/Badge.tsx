@@ -4,7 +4,7 @@ import { HTMLAttributes, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  variant?: 'default' | 'owner' | 'admin' | 'member' | 'success' | 'warning' | 'danger';
+  variant?: 'default' | 'owner' | 'admin' | 'member' | 'success' | 'warning' | 'danger' | 'secondary';
 }
 
 const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
@@ -17,6 +17,7 @@ const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
       success: 'bg-poker-green/20 text-poker-green',
       warning: 'bg-poker-gold/20 text-poker-gold-dark',
       danger: 'bg-poker-red/20 text-poker-red',
+      secondary: 'bg-poker-brown/10 text-poker-brown/60',
     };
 
     return (

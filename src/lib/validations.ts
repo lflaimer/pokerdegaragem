@@ -22,8 +22,19 @@ export const updateGroupSchema = z.object({
 });
 
 // Invite schemas
-export const createInviteSchema = z.object({
-  inviteeEmail: z.string().email('Invalid email address'),
+export const createInviteSchema = z
+  .object({
+    inviteeEmail: z.string().email('Invalid email address').optional(),
+    inviteeId: z.string().optional(),
+  })
+  .refine((data) => data.inviteeEmail || data.inviteeId, {
+    message: 'Either inviteeEmail or inviteeId must be provided',
+  });
+
+// User search schema
+export const userSearchSchema = z.object({
+  q: z.string().min(2, 'Search query must be at least 2 characters'),
+  groupId: z.string().optional(),
 });
 
 export const respondToInviteSchema = z.object({

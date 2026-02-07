@@ -17,10 +17,12 @@ model User {
 
   memberships      GroupMembership[]
   sentInvites      GroupInvite[]      @relation("InviterRelation")
+  receivedInvites  GroupInvite[]      @relation("InviteeRelation")
   gameParticipants GameParticipant[]
   blindPresets     BlindPreset[]
 
   @@index([email])
+  @@index([name])
 }
 
 model Group {
@@ -69,17 +71,21 @@ model GroupInvite {
   id           String       @id @default(cuid())
   groupId      String
   inviterId    String
-  inviteeEmail String
+  inviteeEmail String?
+  inviteeId    String?
   token        String       @unique
   status       InviteStatus @default(PENDING)
+  seenAt       DateTime?
   expiresAt    DateTime
   createdAt    DateTime     @default(now())
 
   group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
   inviter User  @relation("InviterRelation", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee User? @relation("InviteeRelation", fields: [inviteeId], references: [id], onDelete: Cascade)
 
   @@index([groupId])
   @@index([inviterId])
+  @@index([inviteeId])
   @@index([token])
   @@index([inviteeEmail])
 }
