@@ -7,6 +7,7 @@ import { Input } from './Input';
 interface User {
   id: string;
   name: string;
+  email: string;
 }
 
 interface UserSearchInputProps {
@@ -101,7 +102,8 @@ export function UserSearchInput({ groupId, onSelect, disabled }: UserSearchInput
               onClick={() => handleSelect(user)}
               className="w-full px-4 py-3 text-left hover:bg-poker-cream/50 transition-colors first:rounded-t-lg last:rounded-b-lg"
             >
-              <span className="font-medium text-poker-brown">{user.name}</span>
+              <span className="font-medium text-poker-brown block">{user.name}</span>
+              <span className="text-sm text-poker-brown/60">{user.email}</span>
             </button>
           ))}
         </div>

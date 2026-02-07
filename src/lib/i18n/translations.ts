@@ -193,7 +193,7 @@ export const translations = {
     userSearch: {
       byEmail: 'By Email',
       byUsername: 'By Username',
-      searchPlaceholder: 'Search by name...',
+      searchPlaceholder: 'Search by name or email...',
       noResults: 'No users found',
       inviteSent: 'Invite sent successfully',
     },
@@ -525,7 +525,7 @@ export const translations = {
     userSearch: {
       byEmail: 'Por E-mail',
       byUsername: 'Por Nome',
-      searchPlaceholder: 'Buscar por nome...',
+      searchPlaceholder: 'Buscar por nome ou e-mail...',
       noResults: 'Nenhum usuário encontrado',
       inviteSent: 'Convite enviado com sucesso',
     },

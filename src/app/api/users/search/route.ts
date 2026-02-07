@@ -49,13 +49,15 @@ export async function GET(request: NextRequest) {
     const users = await prisma.user.findMany({
       where: {
         id: { notIn: excludeUserIds },
-        name: {
-          contains: query,
-        },
+        OR: [
+          { name: { contains: query } },
+          { email: { contains: query } },
+        ],
       },
       select: {
         id: true,
         name: true,
+        email: true,
       },
       take: 10,
       orderBy: { name: 'asc' },

@@ -145,7 +145,7 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
     }
   };
 
-  const handleUserInvite = async (user: { id: string; name: string }) => {
+  const handleUserInvite = async (user: { id: string; name: string; email: string }) => {
     setError('');
     setInviting(true);
 
