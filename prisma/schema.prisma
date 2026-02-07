@@ -24,14 +24,17 @@ model User {
 }
 
 model Group {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(cuid())
+  name              String
+  publicInviteToken String?  @unique
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   memberships GroupMembership[]
   invites     GroupInvite[]
   games       Game[]
+
+  @@index([publicInviteToken])
 }
 
 enum GroupRole {

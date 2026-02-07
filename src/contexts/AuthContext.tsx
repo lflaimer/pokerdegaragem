@@ -77,6 +77,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setUser(data.data.user);
+
+    // Check for pending join token (from public invite link)
+    const pendingJoinToken = sessionStorage.getItem('pendingJoinToken');
+    if (pendingJoinToken) {
+      sessionStorage.removeItem('pendingJoinToken');
+      try {
+        const joinRes = await fetch(`/api/join/${pendingJoinToken}`, {
+          method: 'POST',
+        });
+        const joinData = await joinRes.json();
+        if (joinRes.ok && joinData.data?.group?.id) {
+          router.push(`/groups/${joinData.data.group.id}`);
+          return;
+        }
+      } catch {
+        // If join fails, continue to dashboard
+      }
+    }
+
     router.push('/dashboard');
   };
 

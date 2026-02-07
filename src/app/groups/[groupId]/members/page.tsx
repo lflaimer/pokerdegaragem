@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -44,6 +45,7 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
   const { groupId } = use(params);
   const router = useRouter();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [group, setGroup] = useState<Group | null>(null);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,11 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
   const [inviting, setInviting] = useState(false);
   const [error, setError] = useState('');
   const [inviteLink, setInviteLink] = useState('');
+
+  // Public invite link state
+  const [publicInviteLink, setPublicInviteLink] = useState<string | null>(null);
+  const [publicLinkLoading, setPublicLinkLoading] = useState(false);
+  const [publicLinkCopied, setPublicLinkCopied] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -81,9 +88,27 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
     }
   };
 
+  const fetchPublicInvite = async () => {
+    try {
+      const res = await fetch(`/api/groups/${groupId}/public-invite`);
+      const data = await res.json();
+      if (data.success) {
+        setPublicInviteLink(data.data.inviteLink);
+      }
+    } catch (error) {
+      console.error('Failed to fetch public invite:', error);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, [groupId]);
+
+  useEffect(() => {
+    if (group && (group.currentUserRole === 'OWNER' || group.currentUserRole === 'ADMIN')) {
+      fetchPublicInvite();
+    }
+  }, [group?.currentUserRole, groupId]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,7 +154,7 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
   };
 
   const handleRemoveMember = async (memberId: string) => {
-    if (!confirm('Are you sure you want to remove this member?')) return;
+    if (!confirm(t.members.confirmRemove)) return;
 
     try {
       const res = await fetch(`/api/groups/${groupId}/members/${memberId}`, {
@@ -160,6 +185,48 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
     }
   };
 
+  const handleGeneratePublicLink = async () => {
+    setPublicLinkLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupId}/public-invite`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPublicInviteLink(data.data.inviteLink);
+      }
+    } catch (error) {
+      console.error('Failed to generate public link:', error);
+    } finally {
+      setPublicLinkLoading(false);
+    }
+  };
+
+  const handleDisablePublicLink = async () => {
+    setPublicLinkLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupId}/public-invite`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPublicInviteLink(null);
+      }
+    } catch (error) {
+      console.error('Failed to disable public link:', error);
+    } finally {
+      setPublicLinkLoading(false);
+    }
+  };
+
+  const handleCopyPublicLink = () => {
+    if (publicInviteLink) {
+      navigator.clipboard.writeText(publicInviteLink);
+      setPublicLinkCopied(true);
+      setTimeout(() => setPublicLinkCopied(false), 2000);
+    }
+  };
+
   const canManageMembers =
     group?.currentUserRole === 'OWNER' || group?.currentUserRole === 'ADMIN';
   const isOwner = group?.currentUserRole === 'OWNER';
@@ -179,20 +246,94 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                 href={`/groups/${groupId}`}
                 className="text-poker-gold hover:text-poker-gold-dark hover:underline text-sm mb-2 inline-block"
               >
-                &larr; Back to {group.name}
+                &larr; {t.common.back} {group.name}
               </Link>
               <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-poker-brown">Members</h1>
+                <h1 className="text-3xl font-bold text-poker-brown">{t.members.title}</h1>
                 {canManageMembers && (
-                  <Button variant="gold" onClick={() => setShowInviteModal(true)}>Invite Member</Button>
+                  <Button variant="gold" onClick={() => setShowInviteModal(true)}>
+                    {t.members.inviteMember}
+                  </Button>
                 )}
               </div>
             </div>
 
+            {/* Public Invite Link */}
+            {canManageMembers && (
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle>{t.members.publicInviteLink}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-poker-brown/70 mb-4">
+                    {t.members.publicInviteDesc}
+                  </p>
+
+                  {publicInviteLink ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 p-3 bg-poker-green/10 border border-poker-green/30 rounded-lg">
+                        <svg className="w-5 h-5 text-poker-green flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-sm text-poker-green font-medium">{t.members.linkEnabled}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          value={publicInviteLink}
+                          readOnly
+                          className="font-mono text-xs flex-1"
+                        />
+                        <Button
+                          variant="secondary"
+                          onClick={handleCopyPublicLink}
+                        >
+                          {publicLinkCopied ? t.members.linkCopied : t.members.copyLink}
+                        </Button>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleGeneratePublicLink}
+                          loading={publicLinkLoading}
+                        >
+                          {t.members.regenerateLink}
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={handleDisablePublicLink}
+                          loading={publicLinkLoading}
+                        >
+                          {t.members.disableLink}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 p-3 bg-poker-brown/5 border border-poker-brown/20 rounded-lg">
+                        <svg className="w-5 h-5 text-poker-brown/50 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                        <span className="text-sm text-poker-brown/60">{t.members.linkDisabled}</span>
+                      </div>
+                      <Button
+                        variant="gold"
+                        onClick={handleGeneratePublicLink}
+                        loading={publicLinkLoading}
+                      >
+                        {t.members.generateLink}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Members List */}
             <Card className="mb-8">
               <CardHeader>
-                <CardTitle>Current Members ({group.members.length})</CardTitle>
+                <CardTitle>{t.members.currentMembers} ({group.members.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="divide-y divide-poker-brown/10">
@@ -202,7 +343,7 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-poker-brown">{member.name}</span>
                           {member.userId === user?.id && (
-                            <span className="text-xs text-poker-brown/50">(you)</span>
+                            <span className="text-xs text-poker-brown/50">({t.members.you})</span>
                           )}
                           <Badge
                             variant={
@@ -213,7 +354,7 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                                   : 'member'
                             }
                           >
-                            {member.role}
+                            {t.roles[member.role.toLowerCase() as 'owner' | 'admin' | 'member']}
                           </Badge>
                         </div>
                         <p className="text-sm text-poker-brown/60">{member.email}</p>
@@ -223,8 +364,8 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                           <>
                             <Select
                               options={[
-                                { value: 'ADMIN', label: 'Admin' },
-                                { value: 'MEMBER', label: 'Member' },
+                                { value: 'ADMIN', label: t.roles.admin },
+                                { value: 'MEMBER', label: t.roles.member },
                               ]}
                               value={member.role}
                               onChange={(e) => handleChangeRole(member.id, e.target.value)}
@@ -235,7 +376,7 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                               size="sm"
                               onClick={() => handleRemoveMember(member.id)}
                             >
-                              Remove
+                              {t.members.remove}
                             </Button>
                           </>
                         )}
@@ -248,7 +389,7 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                               size="sm"
                               onClick={() => handleRemoveMember(member.id)}
                             >
-                              Remove
+                              {t.members.remove}
                             </Button>
                           )}
                       </div>
@@ -262,11 +403,11 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
             {canManageMembers && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Pending Invites ({invites.length})</CardTitle>
+                  <CardTitle>{t.members.pendingInvites} ({invites.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {invites.length === 0 ? (
-                    <p className="text-poker-brown/60 text-center py-4">No pending invites</p>
+                    <p className="text-poker-brown/60 text-center py-4">{t.members.noPendingInvites}</p>
                   ) : (
                     <div className="divide-y divide-poker-brown/10">
                       {invites.map((invite) => (
@@ -274,7 +415,7 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                           <div>
                             <p className="font-medium text-poker-brown">{invite.inviteeEmail}</p>
                             <p className="text-sm text-poker-brown/60">
-                              Invited by {invite.inviter.name}
+                              {t.members.invitedBy} {invite.inviter.name}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
@@ -285,17 +426,17 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                                 navigator.clipboard.writeText(
                                   `${window.location.origin}/invites/${invite.token}`
                                 );
-                                alert('Invite link copied to clipboard!');
+                                alert(t.members.linkCopied);
                               }}
                             >
-                              Copy Link
+                              {t.members.copyLink}
                             </Button>
                             <Button
                               variant="danger"
                               size="sm"
                               onClick={() => handleCancelInvite(invite.id)}
                             >
-                              Cancel
+                              {t.common.cancel}
                             </Button>
                           </div>
                         </div>
@@ -315,23 +456,23 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                 setError('');
                 setInviteLink('');
               }}
-              title="Invite Member"
+              title={t.members.inviteMember}
             >
               {inviteLink ? (
                 <div className="space-y-4">
-                  <p className="text-poker-green font-medium">Invite created successfully!</p>
+                  <p className="text-poker-green font-medium">{t.members.inviteCreated}</p>
                   <p className="text-sm text-poker-brown/70">
-                    Share this link with the person you want to invite:
+                    {t.members.shareLinkDesc}
                   </p>
                   <div className="flex gap-2">
                     <Input value={inviteLink} readOnly className="font-mono text-xs" />
                     <Button
                       onClick={() => {
                         navigator.clipboard.writeText(inviteLink);
-                        alert('Link copied!');
+                        alert(t.members.linkCopied);
                       }}
                     >
-                      Copy
+                      {t.members.copyLink}
                     </Button>
                   </div>
                   <div className="flex justify-end">
@@ -342,7 +483,7 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                         setInviteLink('');
                       }}
                     >
-                      Close
+                      {t.common.close}
                     </Button>
                   </div>
                 </div>
@@ -354,16 +495,15 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                     </div>
                   )}
                   <Input
-                    label="Email Address"
+                    label={t.members.emailAddress}
                     type="email"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="friend@example.com"
+                    placeholder={t.members.emailPlaceholder}
                     required
                   />
                   <p className="text-sm text-poker-brown/60">
-                    An invite link will be generated. You can share it with the person you want to
-                    invite.
+                    {t.members.inviteLinkDesc}
                   </p>
                   <div className="flex justify-end space-x-3">
                     <Button
@@ -375,10 +515,10 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
                         setError('');
                       }}
                     >
-                      Cancel
+                      {t.common.cancel}
                     </Button>
                     <Button type="submit" loading={inviting}>
-                      Create Invite
+                      {t.members.createInvite}
                     </Button>
                   </div>
                 </form>
@@ -387,7 +527,7 @@ export default function MembersPage({ params }: { params: Promise<{ groupId: str
           </>
         ) : (
           <div className="text-center py-12">
-            <p className="text-poker-brown/70">Group not found</p>
+            <p className="text-poker-brown/70">{t.errors.notFound}</p>
           </div>
         )}
       </div>
